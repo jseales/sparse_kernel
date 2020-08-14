@@ -71,10 +71,10 @@ input_tensor = torch.arange(20).reshape(4,5)
 k = np.array([[-2, -1], [0,0], [1, 2]])
 harmonic_conv_2D(input_tensor, k, torch.tensor([1,2,3], dtype=float))
 
-class HarmonicConv_1D(nn.Module):
+class SparseConv1D(nn.Module):
   
   def __init__(self, frames, indices):
-    super(HarmonicConv_1D, self).__init__()
+    super(SparseConv1D, self).__init__()
     self.sparse_kernel_indices = indices
     self.sparse_kernel_values = torch.randn(frames, len(indices))
     # print('self.sparse_kernel_values\n', self.sparse_kernel_values)
@@ -107,16 +107,16 @@ class HarmonicConv_1D(nn.Module):
 
 a = torch.tensor(np.linspace(0, 5, 6))
 kernel_indices = (0,3,7)
-hc1d = HarmonicConv_1D(4, kernel_indices)
-out = hc1d(a)
+sc1d = SparseConv1D(4, kernel_indices)
+out = sc1d(a)
 print(out)
 
 # I'm leaving this version in here for now. It has a lot of debugging print statements. 
 
-# class HarmonicConv_2D(nn.Module):
+# class SparseConv2D(nn.Module):
 
 #   def __init__(self, frames, indices):
-#     super(HarmonicConv_2D, self).__init__()
+#     super(SparseConv2D, self).__init__()
 #     self.sparse_kernel_indices = indices 
 #     # self.sparse_kernel_values = torch.randn(frames, indices.shape[0])
 #     self.sparse_kernel_values = torch.tensor([[0.1, 0.2, 0.3], [0.01, 0.02, 0.03]], dtype = torch.float32)
@@ -163,10 +163,10 @@ print(out)
 #     linear_out = torch.mm(self.sparse_kernel_values, linear_unfolded)
 #     return linear_out.reshape(self.sparse_kernel_values.shape[0], orig_shape[1], orig_shape[2])
 
-class HarmonicConv_2D(nn.Module):
+class SparseConv2D(nn.Module):
 
   def __init__(self, frames, indices):
-    super(HarmonicConv_2D, self).__init__()
+    super(SparseConv2D, self).__init__()
     self.sparse_kernel_indices = indices 
     self.sparse_kernel_values = torch.randn(frames, indices.shape[0])
    
@@ -203,7 +203,7 @@ class HarmonicConv_2D(nn.Module):
 
 a = torch.arange(90).reshape(9,10)
 kernel_indices = np.array([[-2,-1], [0,0], [3, 4]])
-hc2d = HarmonicConv_2D(2, kernel_indices)
+sc2d = SparseConv2D(2, kernel_indices)
 print(a)
 print (kernel_indices)
-hc2d(a)
+sc2d(a)
