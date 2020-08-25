@@ -20,7 +20,7 @@ Compute the output of 'forward' method:
       substep 2 -- finding the indices of the unfolded array
       substep 3 -- storing the values of the unfolded array
     2: multiplying and summing the right elements of the input array and kernel
-      and storing the result in the output tensor.
+      and returning the output tensor.
 
    Inputs:   
        input_tensor (the previous layer's output)  
@@ -94,7 +94,7 @@ Compute the output of 'forward' method:
               Type: torch.tensor dtype==torch.float, requires_grad==True
 
 
-      Computing output 2: multiplication, summing, storage
+      Computing output 2: multiplication, summing, output
           Input: 
             unfolded_tensor (the input tensor values at the locations 
                              of unfolded_array_ind)
@@ -111,10 +111,12 @@ Compute the output of 'forward' method:
               
           Computation:
             1: fuse axes 0,1 in unfolded_tensor and  1, 2 in sk_weights.
-                unfolded tensor shape:
-                  C_in * sk_len, input_len
-                sk_weights shape:
+                sk_weights new shape:
                   C_out, C_in * sk_len
+                  
+                unfolded tensor new shape:
+                  C_in * sk_len, input_len
+                
             2: output_tensor = dot product of sk_weights, unfolded_tensor
                          
 
