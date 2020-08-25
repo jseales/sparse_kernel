@@ -1,0 +1,124 @@
+SparseConv1d
+
+Define, initialize, and compute the output of a sparse kernel.
+
+Initialized with dimensions:
+  C_out     number of output frames
+  C_in      number of input frames
+  sk_ind    the indices of the locations of the elements in the sparse kernel.
+            They are coordinates relative to the element in the input on which
+            the sparse kernel is operating. 
+  Each of the C_out * C_in * sk_len weights is initialized randomly with
+     a normal distribution. The weights are stored in a torch.tensor with dtype
+     torch.float. requires_grad==True.
+ 
+
+Compute the output of 'forward' method:
+  2 main steps
+    1: unfolding the input array
+      substep 1 -- padding the array with zeros
+      substep 2 -- finding the indices of the unfolded array
+      substep 3 -- storing the values of the unfolded array
+    2: multiplying and summing the right elements of the input array and kernel
+      and storing the result in the output tensor.
+
+   Inputs:   
+       input_tensor (the previous layer's output)  
+            Shape: (C_in, input_len)
+            Type: torch.tensor, dtype==torch.float, requires_grad==False
+        sk_weights  
+            Shape: (C_out, C_in, sk_len)
+            Type: torch.tensor, dtype==torch.float, requires_grad==True
+        sk_ind --- the coordinates of the sparse kernel relative to the 
+            element of input on which it is operating
+            Shape: (sk_len)
+            Type: numpy.array, dtype=int
+    Output:
+        output_tensor
+            Shape: (C_out, input_len) (assuming stride==1 and 'same' padding)
+            Type: torch.tensor, dtype==torch.float, requires_grad==False
+
+    Computing output 1: unfolding
+      Input: 
+        input_tensor (the previous layer's output)  
+            Shape: (C_in, input_len)
+            Type: torch.tensor, dtype==torch.float, requires_grad==False
+        sk_ind --- the coordinates of the sparse kernel relative to the 
+            element of input on which it is operating
+            Shape: (sk_len)
+            Type: numpy.array, dtype=int
+      Output:
+        unfolded_tensor
+            Shape: (C_out, C_in, sk_len, input_len)
+            Type: torch.tensor dtype==torch.float, requires_grad==True
+      use array broadcasting to add 
+
+      Substep 1: make the input_tensor into a numpy array and pad with zeros
+        input:
+          input_tensor
+            Shape: (C_in, input_len)
+            Type: torch.tensor, dtype==torch.float, requires_grad==False
+          sk_ind
+            Shape: (sk_len)
+            Type: numpy.array, dtype=int
+        output: 
+          padded_array
+            Shape: (C_in, input_len + high_pad + low_pad)
+            Type: numpy array, dtype==float64
+
+      Substep 2: make an array of indices
+        input:
+        padded_array (input_tensor transformed to a numpy array for this step)  
+            Shape: (C_in, input_len + high_pad + low_pad)
+            Type: numpy array, dtype==float64
+        sk_ind --- the coordinates of the sparse kernel relative to the 
+            element of input on which it is operating
+            Shape: (sk_len)
+            Type: numpy.array, dtype=int
+        output: indices of unfolded array. 
+            Shape: (input_len, sk_len)
+            Type: numpy array, dtype==int
+
+       Substep 3: making the unfolded array
+          input: 
+            unfolded_array_ind
+              Shape: (input_len, sk_len)
+              Type: numpy array, dtype==int
+            input_array (input_tensor transformed to a numpy array for this step)  
+              Shape: (C_in, input_len)
+              Type: numpy array, dtype==float64, requires_grad==False
+          output:
+            unfolded_tensor (the input tensor values at the locations 
+                             of unfolded_array_ind)
+              Shape: (C_in, input_len, sk_len)
+              Type: torch.tensor dtype==torch.float, requires_grad==True
+
+
+      Computing output 2: multiplication, summing, storage
+          Input: 
+            unfolded_tensor (the input tensor values at the locations 
+                             of unfolded_array_ind)
+              Shape: (C_in, input_len, sk_len)
+              Type: torch.tensor dtype==torch.float, requires_grad==True
+            sk_weights 
+              Shape: (C_out, C_in, sk_len)
+              Type: torch.tensor, dtype==torch.float, requires_grad==True
+          Output: 
+            output_tensor
+              Shape: (C_out, input_len) (assuming that this kernel
+                                         has a stride==1 and 'same' padding)
+              Type: torch.tensor, dtype==torch.float, requires_grad==False
+              
+          Computation:
+            1: fuse axes 0,1 in unfolded_tensor and  1, 2 in sk_weights.
+                unfolded tensor shape:
+                  C_in * sk_len, input_len
+                sk_weights shape:
+                  C_out, C_in * sk_len
+            2: output_tensor = dot product of sk_weights, unfolded_tensor
+                         
+
+Possible To Do (though not needed for my current application)
+Support different stride lengths. Currently stride is assumed to be 1.
+Support different pad modes. Currently it's 'same' style, meaning that the output size is the same as the input. 
+Support different types of padding. Currently it's zero padding. 
