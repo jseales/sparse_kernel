@@ -13,14 +13,17 @@ Initialized with dimensions:
      torch.float. requires_grad==True.
  
 
-Compute the output of 'forward' method:
-  2 main steps
-    1: unfolding the input array
-      substep 1 -- padding the array with zeros
-      substep 2 -- finding the indices of the unfolded array
-      substep 3 -- storing the values of the unfolded array
-    2: multiplying and summing the right elements of the input array and kernel
-      and returning the output tensor.
+Overview:
+
+  for each input_tensor in input_batch:
+    2 main steps
+      1: unfolding the input array
+        substep 1 -- padding the array with zeros
+        substep 2 -- finding the indices of the unfolded array
+        substep 3 -- storing the values of the unfolded array
+      2: multiplying and summing the right elements of the input array and kernel
+        and returning the output tensor.
+      3: store output tensor in the output batch
 
    Inputs:   
       input_tensor (the previous layer's output)  
@@ -35,87 +38,95 @@ Compute the output of 'forward' method:
           Type: numpy.array, dtype=int
     Output:
         output_tensor
-            Shape: (out_channels, input_len) (assuming stride==1 and 'same' padding)
+            Shape: (batch_size, out_channels, input_len) (assuming stride==1 and 'same' padding)
             Type: torch.tensor, dtype==torch.float, requires_grad==False
 
-    Computing output 1: unfolding
-      Input: 
-        input_tensor (the previous layer's output)  
-            Shape: (in_channels, input_len)
-            Type: torch.tensor, dtype==torch.float, requires_grad==False
-        sk_ind --- the coordinates of the sparse kernel relative to the 
-            element of input on which it is operating
-            Shape: (sk_len)
-            Type: numpy.array, dtype=int
-      Output:
-        unfolded_tensor -- for every input layer, and every element on that layer,      
-                           we stack all the elements that are determined by the
-                            sparse kernel.   
-            Shape: (in_channels, sk_len, input_len)
-            Type: torch.tensor dtype==torch.float, requires_grad==True
-      use array broadcasting to add 
+    
 
-      Substep 1: make the input_tensor into a numpy array and pad with zeros
-        input:
-          input_tensor
-            Shape: (in_channels, input_len)
-            Type: torch.tensor, dtype==torch.float, requires_grad==False
-          sk_ind
-            Shape: (sk_len)
-            Type: numpy.array, dtype=int
-        output: 
-          padded_array
-            Shape: (in_channels, input_len + high_pad + low_pad)
-            Type: numpy array, dtype==float64
-
-      Substep 2: make an array of indices
-        input:
-          input_len
+Steps in detail:
+    
+    create empty output_batch
+      Shape: (batch_size, out_channels, input_len)
+    for i in range batch_size:
+      Computing output 1: unfolding
+        Input: 
+          input_tensor (the previous layer's output)  
+              Shape: (in_channels, input_len)
+              Type: torch.tensor, dtype==torch.float, requires_grad==False
           sk_ind --- the coordinates of the sparse kernel relative to the 
-            element of input on which it is operating
-            Shape: (sk_len)
-            Type: numpy.array, dtype=int
-        output: indices of unfolded array. 
-          Shape: (sk_len, input_len)
-          Type: numpy array, dtype==int
-
-       Substep 3: making the unfolded array
-        input: 
-          unfolded_array_ind
-            Shape: (sk_len, input_len)
-            Type: numpy array, dtype==int
-          input_array (input_tensor transformed to a numpy array for this step)  
-            Shape: (in_channels, input_len)
-            Type: numpy array, dtype==float64, requires_grad==False
-        output:
+              element of input on which it is operating
+              Shape: (sk_len)
+              Type: numpy.array, dtype=int
+        Output:
           unfolded_tensor -- for every input layer, and every element on that layer,      
-                           we stack all the elements that are determined by the
-                            sparse kernel.  
-            Shape: (in_channels, sk_len, input_len)
-            Type: torch.tensor dtype==torch.float, requires_grad==True
-
-
-      Computing output 2: multiplication, summing, output
-          Input: 
-            unfolded_tensor (the input tensor values at the locations 
-                             of unfolded_array_ind)
+                            we stack all the elements that are determined by the
+                              sparse kernel.   
               Shape: (in_channels, sk_len, input_len)
               Type: torch.tensor dtype==torch.float, requires_grad==True
-            sk_weights 
-              Shape: (out_channels, in_channels, sk_len)
-              Type: torch.tensor, dtype==torch.float, requires_grad==True
-          Output: 
-            output_tensor
-              Shape: (out_channels, input_len) (assuming that this kernel
-                                         has a stride==1 and 'same' padding)
+        use array broadcasting to add 
+
+        Substep 1: make the input_tensor into a numpy array and pad with zeros
+          input:
+            input_tensor
+              Shape: (in_channels, input_len)
               Type: torch.tensor, dtype==torch.float, requires_grad==False
-              
-          Computation:
-            1: fuse axes 0,1 in unfolded_tensor and  1, 2 in sk_weights.
-                sk_weights new shape:
-                  out_channels, in_channels * sk_len
-                  
-                unfolded tensor new shape:
-                  in_channels * sk_len, input_len
+            sk_ind
+              Shape: (sk_len)
+              Type: numpy.array, dtype=int
+          output: 
+            padded_array
+              Shape: (in_channels, input_len + high_pad + low_pad)
+              Type: numpy array, dtype==float64
+
+        Substep 2: make an array of indices
+          input:
+            input_len
+            sk_ind --- the coordinates of the sparse kernel relative to the 
+              element of input on which it is operating
+              Shape: (sk_len)
+              Type: numpy.array, dtype=int
+          output: indices of unfolded array. 
+            Shape: (sk_len, input_len)
+            Type: numpy array, dtype==int
+
+        Substep 3: making the unfolded array
+          input: 
+            unfolded_array_ind
+              Shape: (sk_len, input_len)
+              Type: numpy array, dtype==int
+            input_array (input_tensor transformed to a numpy array for this step)  
+              Shape: (in_channels, input_len)
+              Type: numpy array, dtype==float64, requires_grad==False
+          output:
+            unfolded_tensor -- for every input layer, and every element on that layer,      
+                            we stack all the elements that are determined by the
+                              sparse kernel.  
+              Shape: (in_channels, sk_len, input_len)
+              Type: torch.tensor dtype==torch.float, requires_grad==True
+
+
+        Computing output 2: multiplication, summing, output
+            Input: 
+              unfolded_tensor (the input tensor values at the locations 
+                              of unfolded_array_ind)
+                Shape: (in_channels, sk_len, input_len)
+                Type: torch.tensor dtype==torch.float, requires_grad==True
+              sk_weights 
+                Shape: (out_channels, in_channels, sk_len)
+                Type: torch.tensor, dtype==torch.float, requires_grad==True
+            Output: 
+              output_tensor
+                Shape: (out_channels, input_len) (assuming that this kernel
+                                          has a stride==1 and 'same' padding)
+                Type: torch.tensor, dtype==torch.float, requires_grad==False
                 
-            2: output_tensor = dot product of sk_weights, unfolded_tensor
+            Computation:
+              1: fuse axes 0,1 in unfolded_tensor and  1, 2 in sk_weights.
+                  sk_weights new shape:
+                    out_channels, in_channels * sk_len
+                    
+                  unfolded tensor new shape:
+                    in_channels * sk_len, input_len
+                  
+              2: output_tensor = dot product of sk_weights, unfolded_tensor
+              3: store output_tensor in output_batch[i]
