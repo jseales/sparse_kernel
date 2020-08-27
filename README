@@ -70,22 +70,19 @@ Compute the output of 'forward' method:
 
       Substep 2: make an array of indices
         input:
-          # padded_array (input_tensor transformed to a numpy array for this step)  
-          #   Shape: (in_channels, input_len + high_pad + low_pad)
-          #   Type: numpy array, dtype==float64
           input_len
           sk_ind --- the coordinates of the sparse kernel relative to the 
             element of input on which it is operating
             Shape: (sk_len)
             Type: numpy.array, dtype=int
         output: indices of unfolded array. 
-          Shape: (input_len, sk_len)
+          Shape: (sk_len, input_len)
           Type: numpy array, dtype==int
 
        Substep 3: making the unfolded array
         input: 
           unfolded_array_ind
-            Shape: (input_len, sk_len)
+            Shape: (sk_len, input_len)
             Type: numpy array, dtype==int
           input_array (input_tensor transformed to a numpy array for this step)  
             Shape: (in_channels, input_len)
@@ -94,7 +91,7 @@ Compute the output of 'forward' method:
           unfolded_tensor -- for every input layer, and every element on that layer,      
                            we stack all the elements that are determined by the
                             sparse kernel.  
-            Shape: (in_channels, input_len, sk_len)
+            Shape: (in_channels, sk_len, input_len)
             Type: torch.tensor dtype==torch.float, requires_grad==True
 
 
@@ -120,9 +117,5 @@ Compute the output of 'forward' method:
                   
                 unfolded tensor new shape:
                   in_channels * sk_len, input_len
-                  C_out, C_in * sk_len
-                  
-                unfolded tensor new shape:
-                  C_in * sk_len, input_len
                 
             2: output_tensor = dot product of sk_weights, unfolded_tensor
