@@ -120,5 +120,9 @@ Compute the output of 'forward' method:
                   
                 unfolded tensor new shape:
                   in_channels * sk_len, input_len
+                  C_out, C_in * sk_len
+                  
+                unfolded tensor new shape:
+                  C_in * sk_len, input_len
                 
             2: output_tensor = dot product of sk_weights, unfolded_tensor
