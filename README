@@ -99,7 +99,7 @@ Compute the output of 'forward' method:
           Input: 
             unfolded_tensor (the input tensor values at the locations 
                              of unfolded_array_ind)
-              Shape: (in_channels, input_len, sk_len)
+              Shape: (in_channels, sk_len, input_len)
               Type: torch.tensor dtype==torch.float, requires_grad==True
             sk_weights 
               Shape: (out_channels, in_channels, sk_len)
